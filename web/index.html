@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>红果短剧 · Web版</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--pri:#ff2e4d;--txt:#1a1a1a;--sub:#888;--line:#eee}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt)}
+  header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top))}
+  .topbar{display:flex;align-items:center;gap:10px;max-width:1400px;margin:0 auto;flex-wrap:wrap}
+  .logo{font-size:20px;font-weight:800;color:var(--pri);white-space:nowrap}
+  .searchbox{flex:1;display:flex;gap:8px;min-width:0;position:relative}
+  .searchbox input{flex:1;min-width:0;padding:8px 14px;border:1px solid #ddd;border-radius:20px;font-size:14px;outline:none}
+  /* 搜索下拉: 历史+热搜 */
+  .sdrop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.13);padding:12px 14px;z-index:60;display:none;text-align:left}
+  .sdrop.show{display:block}
+  .sd-sec b{font-size:12px;color:#999;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .sd-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .sd-tag{background:#f5f2ee;border-radius:14px;padding:4px 12px;font-size:13px;color:#555;cursor:pointer;line-height:1.5}
+  .sd-tag:hover{background:var(--pri);color:#fff}
+  .sd-hot .sd-tag{background:#fdf0ec}
+  .sd-clear{color:#ccc;cursor:pointer;font-size:12px;font-weight:400}
+  .sd-clear:hover{color:var(--pri)}
+  .sd-empty{color:#ccc;font-size:12px;padding:4px 0}
+  .searchbox input:focus{border-color:var(--pri)}
+  .searchbox button{padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:20px;font-size:14px;cursor:pointer;white-space:nowrap}
+  nav{display:flex;gap:4px;max-width:1400px;margin:10px auto 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  nav::-webkit-scrollbar{display:none}
+  nav button{padding:6px 14px;border:none;background:#f0f1f3;border-radius:16px;font-size:13px;white-space:nowrap;cursor:pointer;color:#555}
+  nav button.on{background:var(--pri);color:#fff}
+  .subnav{display:flex;gap:4px;max-width:1400px;margin:8px auto 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .subnav::-webkit-scrollbar{display:none}
+  .subnav button{padding:4px 10px;border:1px solid #ddd;background:#fff;border-radius:12px;font-size:12px;white-space:nowrap;cursor:pointer;color:#777}
+  .subnav button.on{border-color:var(--pri);color:var(--pri)}
+  main{max-width:1400px;margin:0 auto;padding:14px 16px calc(60px + env(safe-area-inset-bottom))}
+  @media(max-width:600px){
+    .topbar{gap:8px}
+    .logo{font-size:18px}
+    .searchbox{flex-basis:100%;order:3}
+    .authbtn{margin-left:auto;padding:6px 12px}
+    main{padding:12px 12px calc(60px + env(safe-area-inset-bottom))}
+    header{padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top))}
+  }
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:10px}
+  @media(min-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}}
+  @media(min-width:1024px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}}
+  @media(min-width:1600px){.grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+  .card{background:var(--card);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .card:hover{transform:translateY(-3px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  .cover{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#e8e8e8}
+  .cinfo{padding:7px 9px}
+  .ctitle{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .cmeta{font-size:11px;color:var(--sub);margin-top:3px;display:flex;justify-content:space-between}
+  .score{color:#ff8c00;font-weight:700}
+  .state{text-align:center;color:var(--sub);padding:40px 0;font-size:14px;grid-column:1/-1}
+  .err{color:var(--pri)}
+  /* modal */
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:center;justify-content:center}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:14px;width:min(720px,94vw);max-height:88vh;overflow-y:auto;padding:18px}
+  .dhead{display:flex;gap:14px}
+  .dcover{width:110px;aspect-ratio:3/4;object-fit:cover;border-radius:8px;flex-shrink:0}
+  .dtitle{font-size:18px;font-weight:800}
+  .dmeta{font-size:12px;color:var(--sub);margin:6px 0}
+  .dintro{font-size:13px;color:#555;line-height:1.6;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .dhead>div{min-width:0;flex:1}
+  .eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px;margin-top:16px}
+  .eps button{padding:8px 0;border:1px solid #ddd;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;min-height:36px}
+  .eps button:hover{border-color:var(--pri);color:var(--pri)}
+  .close{float:right;border:none;background:#f0f1f3;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;color:#666}
+  /* 手机端详情弹窗: 全屏化 */
+  @media(max-width:600px){
+    .mask{align-items:flex-end}
+    .modal{width:100vw;max-width:100vw;max-height:92vh;border-radius:14px 14px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+    .dcover{width:92px}
+    .dtitle{font-size:16px}
+  }
+  /* 播放页 (优酷式: 页内小窗+选集) */
+  #watch{max-width:1400px;margin:0 auto;padding:12px 16px calc(80px + env(safe-area-inset-bottom))}
+  .wtop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .wback{padding:6px 14px;border:1px solid #ddd;background:#fff;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
+  .wtitle{font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .wplayer{background:#000;border-radius:10px;overflow:hidden;position:relative;height:min(70vh,133vw)}
+  #video{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+  .wloading{position:absolute;top:0;left:0;right:0;height:calc(100% - 56px);display:none;align-items:center;justify-content:center;color:#fff;font-size:14px;pointer-events:none;gap:10px}
+  .wloading::before{content:'';width:22px;height:22px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:wspin 0.8s linear infinite}
+  @keyframes wspin{to{transform:rotate(360deg)}}
+  .wctrl{display:flex;gap:8px;padding:10px;justify-content:center;background:#111}
+  .wctrl button{padding:8px 18px;border:none;background:#333;color:#fff;border-radius:6px;cursor:pointer;font-size:13px;min-height:36px}
+  .wctrl button:hover{background:var(--pri)}
+  .winfo{background:#fff;border-radius:10px;padding:14px;margin-top:12px}
+  .wname{font-size:17px;font-weight:800}
+  .wmeta{font-size:12px;color:var(--sub);margin:6px 0}
+  .wintro{font-size:13px;color:#555;line-height:1.6;margin-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .weps-title{font-size:14px;font-weight:700;margin:14px 0 8px}
+  .weps{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;max-height:46vh;overflow-y:auto;padding:2px}
+  .weps button{padding:8px 0;border:1px solid #ddd;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;min-height:36px}
+  .weps button:hover{border-color:var(--pri);color:var(--pri)}
+  .weps button.cur{background:var(--pri);color:#fff;border-color:var(--pri);font-weight:700}
+  .weps button.seen:not(.cur){color:#aaa;border-color:#eee}
+  @media(min-width:1024px){
+    .wmain{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+    .winfo{margin-top:0}
+    .weps{max-height:60vh}
+  }
+  /* 影院模式: 暗场+播放器全宽 */
+  body.theater{background:#0a0a0a}
+  body.theater header, body.theater #bbar{display:none !important}
+  body.theater #watch{max-width:none;padding:0}
+  body.theater .wtop{padding:10px 16px}
+  body.theater .wmain{display:block}
+  body.theater .wplayer{border-radius:0;height:min(82vh,177vw)}
+  body.theater .wtitle{color:#eee}
+  body.theater .wback{background:#222;border-color:#333;color:#ccc}
+  body.theater .winfo{background:#161616;margin:12px 16px 0}
+  body.theater .wname{color:#eee}
+  body.theater .wintro{color:#999}
+  body.theater .weps-title{color:#ccc;padding:0 16px}
+  body.theater .weps{padding:2px 16px;max-height:none}
+  body.theater .weps button{background:#1c1c1c;border-color:#333;color:#bbb}
+  body.theater .weps button.cur{background:var(--pri);color:#fff;border-color:var(--pri)}
+  /* 页脚 */
+  .footer{margin-top:44px;border-top:1px solid var(--line);background:linear-gradient(180deg,#fff,#faf6f2);padding:30px 16px calc(26px + env(safe-area-inset-bottom));color:#999;font-size:13px}
+  .footer-in{max-width:1200px;margin:0 auto;display:flex;gap:36px;flex-wrap:wrap}
+  .f-brand{font-size:19px;font-weight:800;color:var(--pri);letter-spacing:.5px}
+  .f-tag{color:#c2b8b0;font-size:12px;margin-top:6px;line-height:1.6}
+  .f-col{min-width:130px}
+  .f-col b{display:block;color:#6b6259;font-size:13px;margin-bottom:8px;font-weight:700}
+  .f-col a{display:block;color:#999;text-decoration:none;line-height:2;cursor:pointer;font-size:13px}
+  .f-col a:hover{color:var(--pri)}
+  .f-copy{max-width:1200px;margin:22px auto 0;padding-top:14px;border-top:1px dashed var(--line);font-size:12px;color:#c9c2bb;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  @media (max-width:600px){.footer{padding-bottom:calc(84px + env(safe-area-inset-bottom))}}
+  body.theater .footer{display:none}
+  /* key gate */
+  .gate{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;align-items:center;justify-content:center}
+  .gate.show{display:flex}
+  .gatebox{background:#fff;padding:30px;border-radius:14px;width:min(400px,90vw);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+  .gatebox h2{margin-bottom:8px;color:var(--pri)}
+  .gatebox p{font-size:13px;color:var(--sub);margin-bottom:16px}
+  .gatebox input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px}
+  .gatebox button{width:100%;padding:10px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer}
+  .morebtn{display:block;margin:20px auto;padding:8px 30px;border:1px solid var(--pri);color:var(--pri);background:#fff;border-radius:20px;cursor:pointer}
+  .authbtn{padding:8px 14px;border:1px solid var(--pri);color:var(--pri);background:#fff;border-radius:20px;font-size:13px;white-space:nowrap;cursor:pointer}
+  .authbtn.on{background:var(--pri);color:#fff}
+  /* 变体B: 手机端底部 tabbar */
+  #bbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  #bbar button{flex:1;border:none;background:#fff;padding:6px 0 4px;font-size:18px;color:#999;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+  #bbar button span{font-size:11px}
+  #bbar button.on{color:var(--pri)}
+  @media(max-width:600px){
+    body.bbar-on main{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+    body.bbar-on #bbar{display:flex !important}
+    body.bbar-on #nav button.ptab{display:none}
+  }
+  body.top-on #nav button.ptab{display:none}
+  @media(max-width:600px){
+    body.top-on .logo{font-size:16px}
+    body.top-on .ptab{padding:5px 10px;font-size:12px}
+  }
+  .favbtn{margin-top:8px;padding:5px 14px;border:1px solid var(--pri);color:var(--pri);background:#fff;border-radius:16px;font-size:12px;cursor:pointer}
+  .favbtn.on{background:var(--pri);color:#fff}
+  .dlast{margin-top:8px;font-size:13px;color:var(--pri);cursor:pointer;font-weight:600}
+  .eps button.seen{opacity:.5}
+  .eps button.lastw{border-color:var(--pri);color:var(--pri);font-weight:700;position:relative}
+  /* 详情骨架屏 */
+  .epskel{height:36px;border-radius:8px;background:linear-gradient(90deg,#f0f0f0 25%,#e6e6e6 50%,#f0f0f0 75%);background-size:200% 100%;animation:skl 1.2s infinite}
+  @keyframes skl{to{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate" style="display:none"></div>
+
+<header>
+  <div class="topbar">
+    <div class="logo" onclick="footerNav('hot')" style="cursor:pointer" title="回到首页">红果Web</div>
+    <div class="searchbox">
+      <input id="q" placeholder="搜索剧名…" onkeydown="if(event.key==='Enter')doSearch()" onfocus="showSDrop()" autocomplete="off">
+      <button onclick="doSearch()">搜索</button>
+      <div class="sdrop" id="sdrop"></div>
+    </div>
+    <span id="topTabs" style="display:none;gap:6px;align-items:center">
+      <button class="authbtn ptab" data-t="fav">⭐ 收藏</button>
+      <button class="authbtn ptab" data-t="history">🕘 历史</button>
+    </span>
+    <button id="authBtn" class="authbtn" onclick="openAuth()">👤 登录</button>
+  </div>
+  <nav id="nav">
+    <button data-t="hot" class="on">热播榜</button>
+    <button data-t="recommend">推荐榜</button>
+    <button data-t="new">新剧榜</button>
+    <button data-t="latest">最新上线</button>
+    <button data-t="browse">分类浏览</button>
+    <button data-t="fav" class="ptab">⭐收藏</button>
+    <button data-t="history" class="ptab">🕘历史</button>
+  </nav>
+  <div class="subnav" id="subnav" style="display:none"></div>
+</header>
+<main><div class="grid" id="grid"><div class="state">加载中…</div></div>
+<div id="moreWrap"></div></main>
+
+<div id="bbar" style="display:none">
+  <button data-t="hot">🏠<span>首页</span></button>
+  <button data-t="fav">⭐<span>收藏</span></button>
+  <button data-t="history">🕘<span>历史</span></button>
+  <button data-t="me">👤<span>我的</span></button>
+</div>
+
+<div class="mask" id="dmask"><div class="modal">
+  <button class="close" onclick="closeD()">✕</button>
+  <div class="dhead">
+    <img class="dcover" id="dcover">
+    <div><div class="dtitle" id="dtitle"></div><div class="dmeta" id="dmeta"></div><div class="dintro" id="dintro"></div>
+    <div class="dlast" id="dlast" style="display:none"></div>
+    <button class="favbtn" id="favbtn" onclick="toggleFav()">☆ 收藏</button>
+    <button class="favbtn" onclick="copyShare()" title="分享这部剧">🔗</button></div>
+  </div>
+  <div class="eps" id="eps"></div>
+</div></div>
+
+<div class="mask" id="amask"><div class="modal" style="width:min(360px,92vw);text-align:center">
+  <button class="close" onclick="closeA()">✕</button>
+  <div id="abox"></div>
+</div></div>
+
+<section id="watch" style="display:none">
+  <div class="wtop">
+    <button class="wback" onclick="closeWatch()">‹ 返回</button>
+    <div class="wtitle" id="wtitle"></div>
+    <button class="wback" onclick="copyShare()" title="分享本集">🔗</button>
+  </div>
+  <div class="wmain">
+    <div>
+      <div class="wplayer">
+        <video id="video" controls playsinline preload="metadata"></video>
+        <div class="wloading" id="wloading">加载中</div>
+        <div class="wctrl">
+          <button onclick="prevNext(-1)">⏮ 上一集</button>
+          <button id="speedBtn" onclick="cycleSpeed()">1x</button>
+          <button id="theaterBtn" onclick="toggleTheater()">🎬 影院</button>
+          <button onclick="prevNext(1)">下一集 ⏭</button>
+        </div>
+      </div>
+      <div class="winfo">
+        <div class="wname" id="wname"></div>
+        <div class="wmeta" id="wmeta"></div>
+        <button class="favbtn" id="wfavbtn" onclick="toggleFav()">☆ 收藏</button>
+        <div class="wintro" id="wintro"></div>
+      </div>
+    </div>
+    <div>
+      <div class="weps-title">选集 <span id="weps-cur" style="color:var(--sub);font-weight:400;font-size:12px"></span></div>
+      <div class="weps" id="weps"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer" id="siteFooter">
+  <div class="footer-in">
+    <div class="f-col">
+      <div class="f-brand">红果Web</div>
+      <div class="f-tag">短剧随心看 · 进度云同步<br>手机 / 平板 / 电脑 全端适配</div>
+    </div>
+    <div class="f-col">
+      <b>频道</b>
+      <a onclick="footerNav('hot')">🔥 热门榜单</a>
+      <a onclick="footerNav('recommend')">✨ 为你推荐</a>
+      <a onclick="footerNav('new')">🆕 最新上架</a>
+    </div>
+    <div class="f-col">
+      <b>我的</b>
+      <a onclick="footerFav()">⭐ 我的收藏</a>
+      <a onclick="footerHis()">🕘 观看历史</a>
+      <a onclick="openAuth()">👤 账号登录</a>
+    </div>
+    <div class="f-col">
+      <b>关于</b>
+      <a onclick="alert('本站仅供个人学习交流，内容来源于红果短剧公开数据，如有侵权请联系删除')">📄 免责声明</a>
+    </div>
+  </div>
+  <div class="f-copy">
+    <span>© 2026 红果Web · 仅供学习交流使用</span>
+    <span>内容来源于红果短剧公开数据</span>
+  </div>
+</footer>
+
+
+<script>
+let KEY = '';
+let curTab = 'hot', curSid = '', curTitle = '', curCover = '', curEp = 1, epCount = 0, curDetail = null;
+let searchCursor = null, searchQuery = '';
+const $ = id => document.getElementById(id);
+
+/* ---- 本地存储：进度 / 收藏 / 历史 / 倍速 ---- */
+const LS = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch(e){ return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+let progress = LS.get('hg_progress', {});   // sid -> {ep,t,title,cover,updated}
+let favs = LS.get('hg_fav', {});            // sid -> {title,cover,episode_cnt,added}
+let hhistory = LS.get('hg_history', []);    // [{sid,title,cover,ep,updated}] 最新在前
+let speed = LS.get('hg_speed', 1);
+const SPEEDS = [1, 1.25, 1.5, 2, 3];
+const fmtT = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+
+function saveProgress() {
+  if (!curSid || !curEp) return;
+  const v = $('video');
+  const t = Math.floor(v.currentTime || 0);
+  progress[curSid] = { ep: curEp, t, title: curTitle, cover: curCover, updated: Date.now() };
+  LS.set('hg_progress', progress);
+  const i = hhistory.findIndex(h => h.sid === curSid);
+  if (i >= 0) hhistory.splice(i, 1);
+  hhistory.unshift({ sid: curSid, title: curTitle, cover: curCover, ep: curEp, updated: Date.now() });
+  if (hhistory.length > 50) hhistory.length = 50;
+  LS.set('hg_history', hhistory);
+}
+
+/* 上报官方账号（已登录才发） */
+function syncHistory() {
+  if (!authUser || !curSid || !curEp) return;
+  const v = $('video');
+  fetch('/auth/sync_history', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ series_id: curSid, ep: curEp, position_ms: Math.floor((v.currentTime || 0) * 1000) })
+  }).catch(() => {});
+}
+
+function toggleFav() {
+  if (!curSid) return;
+  if (favs[curSid]) delete favs[curSid];
+  else favs[curSid] = { sid: curSid, title: curTitle, cover: curCover, episode_cnt: epCount, added: Date.now() };
+  LS.set('hg_fav', favs);
+  updFavBtn();
+}
+function updFavBtn() {
+  const on = !!favs[curSid];
+  ['favbtn', 'wfavbtn'].forEach(id => {
+    const b = $(id); if (!b) return;
+    b.textContent = on ? '★ 已收藏' : '☆ 收藏';
+    b.classList.toggle('on', on);
+  });
+}
+
+function cycleSpeed() {
+  const i = (SPEEDS.indexOf(speed) + 1) % SPEEDS.length;
+  speed = SPEEDS[i];
+  LS.set('hg_speed', speed);
+  $('video').playbackRate = speed;
+  $('speedBtn').textContent = speed + 'x';
+}
+
+/* ---- 扫码登录 ---- */
+let authToken = '', authTimer = null, authUser = null, qrRetries = 0;
+function updAuthBtn() {
+  const b = $('authBtn');
+  if (authUser) { b.textContent = '👤 ' + (authUser.name || '已登录'); b.classList.add('on'); }
+  else { b.textContent = '👤 登录'; b.classList.remove('on'); }
+}
+async function openAuth() {
+  if (authUser) {
+    // 已登录: 账号面板
+    const t = authUser.saved_at ? new Date(authUser.saved_at * 1000).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    $('abox').innerHTML = `<div style="padding:10px 0 4px">
+      ${authUser.avatar ? `<img src="${esc(authUser.avatar)}" style="width:64px;height:64px;border-radius:50%">` : '<div style="font-size:44px">👤</div>'}
+      <div style="font-size:17px;font-weight:700;margin-top:10px">${esc(authUser.name || '已登录')}</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px">${t ? '登录于 ' + t + ' · ' : ''}观看记录同步中</div>
+      <button class="morebtn" style="margin-top:18px" onclick="doLogout()">退出登录</button>
+    </div>`;
+    $('amask').classList.add('show');
+    return;
+  }
+  $('amask').classList.add('show');
+  loadQR();
+}
+async function doLogout() {
+  await fetch('/auth/logout', { method: 'POST' });
+  authUser = null; updAuthBtn(); closeA();
+}
+function closeA() { $('amask').classList.remove('show'); if (authTimer) { clearInterval(authTimer); authTimer = null; } }
+async function loadQR() {
+  qrRetries = qrRetries ?? 0;
+  $('abox').innerHTML = '<div class="state">二维码加载中…</div>';
+  try {
+    const j = await api('/auth/qrcode');
+    authToken = j.token;
+    $('abox').innerHTML = `<img style="width:220px;height:220px;border-radius:8px" src="data:image/png;base64,${j.qrcode}">
+      <div style="margin-top:12px;font-size:14px" id="astat">用 <b>番茄小说APP</b>「扫一扫」扫码登录</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px">与红果同一账号体系(同抖音号/手机号) · 登录后同步追剧/观看记录</div>`;
+    if (authTimer) clearInterval(authTimer);
+    authTimer = setInterval(pollAuth, 2000);
+  } catch (e) {
+    $('abox').innerHTML = `<div class="state err">加载失败: ${esc(e.message)}</div><button class="morebtn" onclick="loadQR()">重试</button>`;
+  }
+}
+async function pollAuth() {
+  try {
+    const j = await api('/auth/status?token=' + encodeURIComponent(authToken));
+    if (j.status === 'confirmed') {
+      clearInterval(authTimer); authTimer = null;
+      authUser = j.user || { name: '' };
+      updAuthBtn();
+      $('abox').innerHTML = `<div style="padding:30px 0;font-size:16px">✅ 登录成功${authUser.name ? '：' + esc(authUser.name) : ''}</div>`;
+      setTimeout(closeA, 1200);
+    } else if (j.status === 'scanned') {
+      const el = $('astat'); if (el) el.innerHTML = '已扫码，请在手机上<b>确认登录</b>';
+    } else if (j.status === 'expired') {
+      clearInterval(authTimer); authTimer = null;
+      qrRetries = (qrRetries || 0) + 1;
+      if (qrRetries <= 30) { loadQR(); }
+      else $('abox').innerHTML = '<div style="padding:24px 0">二维码已过期</div><button class="morebtn" onclick="qrRetries=0;loadQR()">刷新二维码</button>';
+    }
+  } catch (e) { /* 网络抖动忽略 */ }
+}
+
+async function api(path) {
+  const r = await fetch(path);
+  const j = await r.json();
+  if (j.detail) throw new Error(typeof j.detail === 'string' ? j.detail : (j.detail.message || j.detail.code || 'error'));
+  return j;
+}
+const img = u => '/img?url=' + encodeURIComponent(u);
+const fmtCnt = n => n > 1e8 ? (n/1e8).toFixed(1)+'亿' : n > 1e4 ? (n/1e4).toFixed(1)+'万' : n;
+
+/* ---- 布局变体: 默认 bottom(手机底部tabbar) | ?layout=top(顶栏入口) ---- */
+const LAYOUT = new URLSearchParams(location.search).get('layout') || 'bottom';
+if (LAYOUT === 'top') { document.body.classList.add('top-on'); $('topTabs').style.display = 'inline-flex'; }
+if (LAYOUT === 'bottom') document.body.classList.add('bbar-on');
+
+function switchTab(t) {
+  if (t === 'me') { openAuth(); return; }
+  curTab = t;
+  document.querySelectorAll('#nav button, #topTabs button, #bbar button').forEach(x =>
+    x.classList.toggle('on', x.dataset.t === t));
+  $('subnav').style.display = t === 'browse' ? 'flex' : 'none';
+  if (t === 'browse') loadFilters();
+  load();
+}
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => switchTab(b.dataset.t));
+document.querySelectorAll('#topTabs button, #bbar button').forEach(b => b.onclick = () => switchTab(b.dataset.t));
+
+/* 页脚快捷入口 */
+function footerNav(t) { closeD(); hideWatch(); setHashSilently('#'); switchTab(t); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function footerFav() { footerNav('fav'); }
+function footerHis() { footerNav('history'); }
+switchTab('hot');
+// 分享链接直达: 页面加载完成后按 hash 路由进详情/播放
+window.addEventListener('load', () => { if (location.hash) routeHash(location.hash); });
+
+let curGenre = 'short_play', curTheme = '';
+async function loadFilters() {
+  try {
+    const j = await api(`/filters?genre=${curGenre}`);
+    const sn = $('subnav'); sn.innerHTML = '';
+    j.rows.forEach(row => {
+      if (row.type === 'genre') {
+        row.items.forEach(it => {
+          const b = document.createElement('button');
+          b.textContent = it.name;
+          if (it.id === curGenre) b.classList.add('on');
+          b.onclick = () => { curGenre = it.id; curTheme = ''; loadFilters(); load(); };
+          sn.appendChild(b);
+        });
+        sn.appendChild(document.createTextNode('｜'));
+      } else if (row.type.includes('theme')) {
+        const all = document.createElement('button');
+        all.textContent = '全部主题';
+        if (!curTheme) all.classList.add('on');
+        all.onclick = () => { curTheme = ''; loadFilters(); load(); };
+        sn.appendChild(all);
+        row.items.slice(0, 20).forEach(it => {
+          const b = document.createElement('button');
+          b.textContent = it.name;
+          if (it.name === curTheme) b.classList.add('on');
+          b.onclick = () => { curTheme = it.name; loadFilters(); load(); };
+          sn.appendChild(b);
+        });
+      }
+    });
+  } catch (e) { console.log(e); }
+}
+
+function render(items) {
+  const g = $('grid'); g.innerHTML = '';
+  if (!items || !items.length) { g.innerHTML = '<div class="state">暂无内容</div>'; return; }
+  items.forEach(it => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    d.innerHTML = `<img class="cover" loading="lazy" src="${img(it.cover||'')}">
+      <div class="cinfo"><div class="ctitle">${esc(it.title)}</div>
+      <div class="cmeta"><span class="score">${it.score||''}</span><span>${it.episode_cnt||'?'}集${it.play_cnt ? ' · ' + fmtCnt(it.play_cnt) : ''}</span></div></div>`;
+    d.onclick = () => openDetail(it.series_id, it);
+    g.appendChild(d);
+  });
+}
+const esc = s => (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function renderLocal(list, emptyMsg) {
+  const g = $('grid'); g.innerHTML = '';
+  if (!list.length) { g.innerHTML = `<div class="state">${emptyMsg}</div>`; return; }
+  list.forEach(it => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    const sub = it.ep ? `看到第${it.ep}集` : (it.episode_cnt ? it.episode_cnt + '集' : '');
+    d.innerHTML = `<img class="cover" loading="lazy" src="${img(it.cover||'')}">
+      <div class="cinfo"><div class="ctitle">${esc(it.title)}</div>
+      <div class="cmeta"><span>${sub}</span></div></div>`;
+    d.onclick = () => openDetail(it.sid, it);
+    g.appendChild(d);
+  });
+}
+
+/* 账号历史：服务端已带标题封面(60s缓存)，本地仅补缺 */
+async function loadAccountHistory() {
+  const g = $('grid'); g.innerHTML = '<div class="state">正在同步账号观看记录…</div>';
+  try {
+    const j = await api('/auth/history');
+    let items = (j.items || []).slice(0, 60);
+    const localMap = {}; hhistory.forEach(h => localMap[h.sid] = h);
+    items.forEach(it => {
+      if (!it.title && localMap[it.sid]) { it.title = localMap[it.sid].title; it.cover = localMap[it.sid].cover; }
+    });
+    // 云端没同步上的本地记录也合并进来(用户看过就必须出现在历史里)
+    const cloudSids = new Set(items.map(it => String(it.sid)));
+    hhistory.filter(h => !cloudSids.has(String(h.sid)))
+      .forEach(h => items.push({ sid: h.sid, title: h.title, cover: h.cover, ep: h.ep, _local: true }));
+    if (!items.length) { g.innerHTML = '<div class="state">暂无观看历史</div>'; return; }
+    g.innerHTML = '';
+    items.forEach(it => {
+      const d = document.createElement('div');
+      d.className = 'card';
+      d.innerHTML = `<img class="cover" loading="lazy" src="${img(it.cover||'')}">
+        <div class="cinfo"><div class="ctitle">${esc(it.title || '剧集 ' + it.sid)}</div>
+        <div class="cmeta"><span>看到第${it.ep || '?'}集${it._local ? ' · 本地' : ''}</span></div></div>`;
+      d.onclick = () => openDetail(it.sid, it);
+      g.appendChild(d);
+    });
+  } catch (e) {
+    renderLocal(hhistory, '账号历史拉取失败，显示本地记录');
+  }
+}
+
+async function load() {
+  $('grid').innerHTML = '<div class="state">加载中…</div>';
+  $('moreWrap').innerHTML = '';
+  if (curTab === 'fav') return renderLocal(Object.values(favs).sort((a,b) => b.added - a.added), '还没有收藏，打开详情页点 ☆ 收藏');
+  if (curTab === 'history') {
+    if (authUser) return loadAccountHistory();
+    return renderLocal(hhistory, '暂无观看历史（登录后可同步官方账号）');
+  }
+  try {
+    let j;
+    if (curTab === 'latest') j = await api('/latest?genre=short_play&only_today=false');
+    else if (curTab === 'browse') j = await api(`/browse?genre=${curGenre}${curTheme ? '&theme='+encodeURIComponent(curTheme) : ''}&sort=hot_score`);
+    else j = await api(`/rank?board=${curTab}&limit=60`);
+    render(j.items);
+  } catch (e) {
+    if (e.message !== '401') $('grid').innerHTML = `<div class="state err">加载失败: ${esc(e.message)}</div>`;
+  }
+}
+
+/* ---- 搜索历史(按账号隔离) + 站内热搜 ---- */
+function saveSHis(q) {
+  fetch('/search/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q }) }).catch(() => {});
+}
+async function showSDrop() {
+  const d = $('sdrop');
+  d.classList.add('show');
+  d.innerHTML = '<div class="sd-empty">加载中…</div>';
+  let his = [], hot = [];
+  try { his = (await api('/search/history')).history || []; } catch (e) {}
+  try { hot = (await api('/search/hot')).hot || []; } catch (e) {}
+  if (!his.length && !hot.length) { d.innerHTML = '<div class="sd-empty">输入关键词搜索短剧</div>'; return; }
+  let h = '';
+  if (his.length) h += `<div class="sd-sec"><b>🕘 搜索历史 <span class="sd-clear" onclick="clearSHis(event)">清空</span></b>
+    <div class="sd-tags">${his.map(t => `<span class="sd-tag" data-q="${encodeURIComponent(t)}">${esc(t)}</span>`).join('')}</div></div>`;
+  if (hot.length) h += `<div class="sd-sec sd-hot" style="margin-top:12px"><b>🔥 正在热搜</b>
+    <div class="sd-tags">${hot.map(t => `<span class="sd-tag" data-q="${encodeURIComponent(t)}">${esc(t)}</span>`).join('')}</div></div>`;
+  d.innerHTML = h;
+  d.querySelectorAll('.sd-tag').forEach(t => t.onclick = () => {
+    $('q').value = decodeURIComponent(t.dataset.q);
+    doSearch();
+  });
+}
+function hideSDrop() { $('sdrop').classList.remove('show'); }
+async function clearSHis(ev) {
+  ev.stopPropagation();
+  await fetch('/search/history', { method: 'DELETE' }).catch(() => {});
+  showSDrop();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.searchbox')) hideSDrop();
+});
+
+async function doSearch(more) {
+  const q = $('q').value.trim();
+  if (!q) return;
+  if (!more) { hideSDrop(); saveSHis(q); searchQuery = q; searchCursor = null; $('grid').innerHTML = '<div class="state">搜索中…</div>'; $('moreWrap').innerHTML = ''; }
+  try {
+    let url = `/search/page?q=${encodeURIComponent(searchQuery)}`;
+    if (searchCursor) url += `&cursor=${searchCursor}`;
+    const j = await api(url);
+    if (more) {
+      j.items.forEach(it => {
+        const d = document.createElement('div');
+        d.className = 'card';
+        d.innerHTML = `<img class="cover" loading="lazy" src="${img(it.cover||'')}">
+          <div class="cinfo"><div class="ctitle">${esc(it.title)}</div>
+          <div class="cmeta"><span class="score">${it.score||''}</span><span>${it.episode_cnt||'?'}集</span></div></div>`;
+        d.onclick = () => openDetail(it.series_id, it);
+        $('grid').appendChild(d);
+      });
+    } else render(j.items);
+    if (j.next_cursor) {
+      $('moreWrap').innerHTML = '<button class="morebtn" onclick="doSearch(true)">加载更多</button>';
+      searchCursor = j.next_cursor;
+    } else $('moreWrap').innerHTML = '';
+  } catch (e) {
+    $('grid').innerHTML = `<div class="state err">搜索暂不可用（上游风控）: ${esc(e.message)}</div>`;
+  }
+}
+
+const epcache = {};  // sid -> {t, j}, 5分钟缓存
+/* ---- hash 路由: #/d/<sid> 详情, #/w/<sid>/<ep> 播放 ---- */
+let _muteHash = null;
+function setHashSilently(h) { _muteHash = h; location.hash = h; }
+function replaceHashSilently(h) { _muteHash = h; history.replaceState(null, '', h); }
+
+async function routeHash(h) {
+  const mw = h.match(/^#\/w\/(\d+)\/(\d+)/);
+  if (mw) {
+    const sid = mw[1], ep = parseInt(mw[2]);
+    if (curSid !== sid || !curDetail) {
+      try {
+        const ck = epcache[sid];
+        const j = (ck && Date.now() - ck.t < 300000) ? ck.j : await api(`/episodes?series_id=${sid}`);
+        epcache[sid] = { t: Date.now(), j };
+        renderDetail(sid, j);
+      } catch (e) { return; }
+    }
+    closeD();
+    openWatch(ep);
+    return;
+  }
+  const md = h.match(/^#\/d\/(\d+)/);
+  if (md) { openDetail(md[1]); return; }
+  closeD();
+  if ($('watch').style.display === 'block') hideWatch();
+}
+window.addEventListener('hashchange', () => {
+  const h = location.hash;
+  if (h === _muteHash) { _muteHash = null; return; }
+  routeHash(h);
+});
+
+function copyShare(ev) {
+  if (ev) ev.stopPropagation();
+  const url = location.href;
+  const done = () => toast('🔗 链接已复制，去分享吧');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(() => prompt('复制链接:', url));
+  else prompt('复制链接:', url);
+}
+let _toastT = null;
+function toast(msg) {
+  let t = $('toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = 'toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:9px 18px;border-radius:20px;font-size:14px;z-index:300;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(_toastT); _toastT = setTimeout(() => t.style.display = 'none', 1800);
+}
+
+async function openDetail(sid, preset) {
+  setHashSilently('#/d/' + sid);
+  $('dmask').classList.add('show');
+  // 先用卡片已有信息秒填, 不再空白等待
+  $('dtitle').textContent = (preset && preset.title) || '加载中…';
+  $('dmeta').textContent = ''; $('dintro').textContent = '';
+  $('dcover').src = (preset && preset.cover) ? img(preset.cover) : '';
+  $('eps').innerHTML = '<div class="epskel"></div>'.repeat(12);
+  $('dlast').style.display = 'none';
+  const ck = epcache[sid];
+  if (ck && Date.now() - ck.t < 300000) return renderDetail(sid, ck.j);
+  try {
+    const j = await api(`/episodes?series_id=${sid}`);
+    epcache[sid] = { t: Date.now(), j };
+    renderDetail(sid, j);
+  } catch (e) { $('dtitle').textContent = '加载失败: ' + e.message; }
+}
+function renderDetail(sid, j) {
+    curSid = sid; curTitle = j.meta.title; curCover = j.meta.cover || ''; epCount = j.episodes.length; curDetail = j.meta;
+    const p0 = progress[sid];
+    fetch(`/warm?series_id=${sid}&ep=${p0 && p0.ep ? p0.ep : 1}&api_key=${KEY}`).catch(() => {});
+    $('dtitle').textContent = j.meta.title;
+    document.title = `${j.meta.title} - 红果Web`;
+    $('dmeta').textContent = `${j.episodes.length}集 · 评分 ${j.meta.score||'-'} · ${j.meta.category||''}`;
+    $('dintro').textContent = j.meta.intro || '';
+    $('dcover').src = img(j.meta.cover || '');
+    const p = progress[sid];
+    const dl = $('dlast');
+    if (p && p.ep) {
+      dl.style.display = 'block';
+      dl.textContent = `▶ 上次看到 第${p.ep}集${p.t > 5 ? ' ' + fmtT(p.t) : ''} · 点击续播`;
+      dl.onclick = () => { closeD(); openWatch(p.ep); };
+    } else dl.style.display = 'none';
+    updFavBtn();
+    const eps = $('eps');
+    eps.innerHTML = '';
+    j.episodes.forEach(e => {
+      const b = document.createElement('button');
+      b.textContent = e.index || '?';
+      if (p) {
+        if (e.index === p.ep) b.classList.add('lastw');
+        else if (e.index < p.ep) b.classList.add('seen');
+      }
+      b.onclick = () => { closeD(); openWatch(e.index); };
+      eps.appendChild(b);
+    });
+}
+function closeD() {
+  $('dmask').classList.remove('show');
+  if (location.hash.startsWith('#/d/')) setHashSilently('#');
+}
+
+/* ---- 播放页 (优酷式) ---- */
+let listScrollY = 0;
+function openWatch(ep) {
+  if (!curDetail) return;
+  listScrollY = window.scrollY;
+  $('watch').style.display = 'block';
+  document.querySelector('main').style.display = 'none';
+  window.scrollTo(0, 0);
+  const d = curDetail;
+  $('wname').textContent = d.title;
+  $('wmeta').textContent = `${epCount}集 · ${d.category || '短剧'} · 评分 ${d.score || '-'}`;
+  $('wintro').textContent = d.intro || '';
+  updFavBtn();
+  renderWEps();
+  playEp(ep);
+  document.title = `${d.title} 第${ep}集 - 红果Web`;
+  setHashSilently(`#/w/${curSid}/${ep}`);
+}
+function renderWEps() {
+  const w = $('weps'); w.innerHTML = '';
+  const p = progress[curSid];
+  for (let i = 1; i <= epCount; i++) {
+    const b = document.createElement('button');
+    b.textContent = i;
+    b.id = 'wep' + i;
+    if (p && i < p.ep) b.classList.add('seen');
+    b.onclick = () => playEp(i);
+    w.appendChild(b);
+  }
+}
+function playEp(n) {
+  if (n < 1 || n > epCount) return;
+  curEp = n;
+  const v = $('video');
+  const p = progress[curSid];
+  const resumeT = (p && p.ep === n && p.t > 5) ? p.t : 0;
+  $('wtitle').textContent = `${curTitle} 第${n}集`;
+  $('weps-cur').textContent = `第${n}集 / 共${epCount}集`;
+  document.querySelectorAll('#weps button').forEach((b, i) => {
+    b.classList.toggle('cur', i + 1 === n);
+    if (i + 1 < n) b.classList.add('seen');   // 看过的集数实时灰显
+  });
+  const cur = $('wep' + n);
+  if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  v.onloadedmetadata = () => {
+    if (resumeT && (!v.duration || v.duration - resumeT > 10)) v.currentTime = resumeT;
+    v.playbackRate = speed;
+  };
+  v.src = `/stream?series_id=${curSid}&ep=${n}`;
+  replaceHashSilently(`#/w/${curSid}/${n}`);
+  document.title = `${curTitle} 第${n}集 - 红果Web`;
+  $('wloading').style.display = 'flex';
+  v.play().catch(() => {});
+  setTimeout(syncHistory, 3000);
+}
+function prevNext(d) { playEp(curEp + d); }
+function toggleTheater() {
+  const on = document.body.classList.toggle('theater');
+  $('theaterBtn').textContent = on ? '✕ 退出' : '🎬 影院';
+  window.scrollTo(0, 0);
+}
+function hideWatch() {
+  document.body.classList.remove('theater');
+  const tb = $('theaterBtn'); if (tb) tb.textContent = '🎬 影院';
+  saveProgress(); syncHistory();
+  const v = $('video'); v.pause(); v.removeAttribute('src'); v.load();
+  $('watch').style.display = 'none';
+  document.querySelector('main').style.display = '';
+  document.title = '红果短剧 · Web版';
+  window.scrollTo(0, listScrollY);
+}
+function closeWatch() {
+  hideWatch();
+  if (location.hash.startsWith('#/w/')) history.back();
+}
+document.addEventListener('keydown', e => {
+  if ($('watch').style.display !== 'block' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') prevNext(-1);
+  if (e.key === 'ArrowRight') prevNext(1);
+});
+$('video').addEventListener('ended', () => { if (curEp < epCount) playEp(curEp + 1); });
+$('video').addEventListener('playing', () => { $('wloading').style.display = 'none'; });
+$('video').addEventListener('waiting', () => { $('wloading').style.display = 'flex'; });
+$('video').addEventListener('error', () => { $('wloading').style.display = 'none'; });
+let lastSave = 0, lastSync = 0;
+$('video').addEventListener('timeupdate', () => {
+  const now = Date.now();
+  if (now - lastSave > 5000) { lastSave = now; saveProgress(); }
+  if (now - lastSync > 30000) { lastSync = now; syncHistory(); }
+});
+$('speedBtn').textContent = speed + 'x';
+
+// 恢复登录态
+(async () => { try { const j = await api('/auth/me'); if (j.logged_in) { authUser = { ...(j.user || {}), saved_at: j.saved_at }; updAuthBtn(); } } catch (e) {} })();
+
+</script>
+</body>
+</html>

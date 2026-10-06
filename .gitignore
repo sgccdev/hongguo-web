@@ -1,0 +1,13 @@
+account.json
+account_*.json
+apikeys.json
+downloads/
+.env
+hot_search.json
+*.log
+*.pyc
+__pycache__/
+search_hist_*.json
+sign/\ncapture/
+stream-cache/
+venv/
