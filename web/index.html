@@ -83,7 +83,7 @@
   /* 播放页 (优酷式: 页内小窗+选集) */
   #watch{max-width:1400px;margin:0 auto;padding:12px 16px calc(80px + env(safe-area-inset-bottom));position:relative}
   /* 拉绳开关灯 */
-  #lampCord{position:absolute;top:0;right:30px;width:40px;display:flex;flex-direction:column;align-items:center;cursor:grab;z-index:60;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+  #lampCord{position:fixed;top:0;right:14px;width:40px;display:flex;flex-direction:column;align-items:center;cursor:grab;z-index:120;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
   #lampCord .rope{width:2px;height:74px;background:linear-gradient(#b8b2a8,#8a857c)}
   #lampCord .knob{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#f5b942);box-shadow:0 3px 8px rgba(0,0,0,.28),inset 0 -2px 4px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:17px;transition:filter .3s}
   #lampCord.pulled{transform:translateY(26px);transition:transform .1s ease-in}
@@ -93,7 +93,7 @@
   .wtop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .wback{padding:6px 14px;border:1px solid #ddd;background:#fff;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
   .wtitle{font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-  .wplayer{background:#000;border-radius:10px;overflow:hidden;position:relative;height:min(70vh,133vw)}
+  .wplayer{background:#000;border-radius:10px;overflow:hidden;position:relative;height:min(64vh,133vw)}
   #video{display:block;width:100%;height:100%;object-fit:contain;background:#000}
   .wloading{position:absolute;top:0;left:0;right:0;height:calc(100% - 56px);display:none;align-items:center;justify-content:center;color:#fff;font-size:14px;pointer-events:none;gap:10px}
   .wloading::before{content:'';width:22px;height:22px;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:wspin 0.8s linear infinite}
