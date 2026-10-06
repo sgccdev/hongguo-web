@@ -81,7 +81,15 @@
     .dtitle{font-size:16px}
   }
   /* 播放页 (优酷式: 页内小窗+选集) */
-  #watch{max-width:1400px;margin:0 auto;padding:12px 16px calc(80px + env(safe-area-inset-bottom))}
+  #watch{max-width:1400px;margin:0 auto;padding:12px 16px calc(80px + env(safe-area-inset-bottom));position:relative}
+  /* 拉绳开关灯 */
+  #lampCord{position:absolute;top:0;right:30px;width:40px;display:flex;flex-direction:column;align-items:center;cursor:grab;z-index:60;user-select:none;-webkit-user-select:none;touch-action:none;transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+  #lampCord .rope{width:2px;height:74px;background:linear-gradient(#b8b2a8,#8a857c)}
+  #lampCord .knob{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3c4,#f5b942);box-shadow:0 3px 8px rgba(0,0,0,.28),inset 0 -2px 4px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:17px;transition:filter .3s}
+  #lampCord.pulled{transform:translateY(26px);transition:transform .1s ease-in}
+  #lampCord:hover .knob{box-shadow:0 3px 10px rgba(245,185,66,.5),inset 0 -2px 4px rgba(0,0,0,.15)}
+  body.theater #lampCord .rope{background:linear-gradient(#5a564e,#9a958c)}
+  body.theater #lampCord .knob{filter:grayscale(.9) brightness(.55)}
   .wtop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .wback{padding:6px 14px;border:1px solid #ddd;background:#fff;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
   .wtitle{font-size:16px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -232,6 +240,10 @@
 </div></div>
 
 <section id="watch" style="display:none">
+  <div id="lampCord" title="拉一下 · 开关灯(影院模式)">
+    <div class="rope"></div>
+    <div class="knob">💡</div>
+  </div>
   <div class="wtop">
     <button class="wback" onclick="closeWatch()">‹ 返回</button>
     <div class="wtitle" id="wtitle"></div>
@@ -831,6 +843,22 @@ function toggleTheater() {
   $('theaterBtn').textContent = on ? '✕ 退出' : '🎬 影院';
   window.scrollTo(0, 0);
 }
+/* ---- 拉绳开关灯: 点击或下拉触发 ---- */
+(function () {
+  const c = $('lampCord');
+  let startY = null, pulled = false;
+  function doPull() {
+    c.classList.add('pulled');
+    setTimeout(() => c.classList.remove('pulled'), 200);
+    toggleTheater();
+  }
+  c.addEventListener('pointerdown', e => { startY = e.clientY; pulled = false; c.setPointerCapture(e.pointerId); });
+  c.addEventListener('pointermove', e => {
+    if (startY === null) return;
+    if (e.clientY - startY > 26 && !pulled) { pulled = true; startY = null; doPull(); }
+  });
+  c.addEventListener('pointerup', () => { if (startY !== null && !pulled) doPull(); startY = null; });
+})();
 function hideWatch() {
   document.body.classList.remove('theater');
   const tb = $('theaterBtn'); if (tb) tb.textContent = '🎬 影院';
