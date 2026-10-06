@@ -247,7 +247,7 @@
   <div class="wtop">
     <button class="wback" onclick="closeWatch()">‹ 返回</button>
     <div class="wtitle" id="wtitle"></div>
-    <button class="wback" id="theaterBtn2" onclick="toggleTheater()" title="影院模式">🎬</button>
+    <button class="wback" id="theaterBtn2" onclick="toggleTheater()">🎬 开启影院模式</button>
     <button class="wback" onclick="copyShare()" title="分享本集">🔗</button>
   </div>
   <div class="wmain">
@@ -850,7 +850,7 @@ function prevNext(d) { playEp(curEp + d); }
 function toggleTheater() {
   const on = document.body.classList.toggle('theater');
   $('theaterBtn').textContent = on ? '✕ 退出' : '🎬 影院';
-  const t2 = $('theaterBtn2'); if (t2) t2.textContent = on ? '✕' : '🎬';
+  const t2 = $('theaterBtn2'); if (t2) t2.textContent = on ? '✕ 退出影院模式' : '🎬 开启影院模式';
   window.scrollTo(0, 0);
 }
 /* ---- 拉绳开关灯: 点击或下拉触发 ---- */
@@ -872,7 +872,7 @@ function toggleTheater() {
 function hideWatch() {
   document.body.classList.remove('theater');
   const tb = $('theaterBtn'); if (tb) tb.textContent = '🎬 影院';
-  const t2 = $('theaterBtn2'); if (t2) t2.textContent = '🎬';
+  const t2 = $('theaterBtn2'); if (t2) t2.textContent = '🎬 开启影院模式';
   saveProgress(); syncHistory();
   const v = $('video'); v.pause(); v.removeAttribute('src'); v.load();
   $('watch').style.display = 'none';
