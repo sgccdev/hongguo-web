@@ -67,6 +67,9 @@
   .dintro{font-size:13px;color:#555;line-height:1.6;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .dhead>div{min-width:0;flex:1}
   .eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:8px;margin-top:16px}
+  .eps-title{font-size:14px;font-weight:700;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:center}
+  .epctl button{background:#f5f2ee;border:0;border-radius:14px;padding:4px 12px;font-size:12px;color:#555;cursor:pointer;margin-left:6px}
+  .epctl button:hover{background:var(--pri);color:#fff}
   .eps button{padding:8px 0;border:1px solid #ddd;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;min-height:36px}
   .eps button:hover{border-color:var(--pri);color:var(--pri)}
   .close{float:right;border:none;background:#f0f1f3;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;color:#666}
@@ -216,6 +219,10 @@
     <button class="favbtn" id="favbtn" onclick="toggleFav()">☆ 收藏</button>
     <button class="favbtn" onclick="copyShare()" title="分享这部剧">🔗</button></div>
   </div>
+  <div class="eps-title">选集 <span class="epctl">
+    <button onclick="toggleEpOrder()" id="epOrderBtn">⇅ 正序</button>
+    <button onclick="jumpLatest()">▶ 最新</button>
+  </span></div>
   <div class="eps" id="eps"></div>
 </div></div>
 
@@ -250,7 +257,12 @@
       </div>
     </div>
     <div>
-      <div class="weps-title">选集 <span id="weps-cur" style="color:var(--sub);font-weight:400;font-size:12px"></span></div>
+      <div class="weps-title">选集 <span id="weps-cur" style="color:var(--sub);font-weight:400;font-size:12px"></span>
+        <span class="epctl" style="float:right">
+          <button onclick="toggleEpOrder()" id="wepOrderBtn">⇅ 正序</button>
+          <button onclick="openWatch(epCount)">▶ 最新</button>
+        </span>
+      </div>
       <div class="weps" id="weps"></div>
     </div>
   </div>
@@ -707,23 +719,53 @@ function renderDetail(sid, j) {
       dl.onclick = () => { closeD(); openWatch(p.ep); };
     } else dl.style.display = 'none';
     updFavBtn();
-    const eps = $('eps');
-    eps.innerHTML = '';
-    j.episodes.forEach(e => {
-      const b = document.createElement('button');
-      b.textContent = e.index || '?';
-      if (p) {
-        if (e.index === p.ep) b.classList.add('lastw');
-        else if (e.index < p.ep) b.classList.add('seen');
-      }
-      b.onclick = () => { closeD(); openWatch(e.index); };
-      eps.appendChild(b);
-    });
+    lastEpData = j;
+    renderEpButtons();
 }
 function closeD() {
   $('dmask').classList.remove('show');
   if (location.hash.startsWith('#/d/')) setHashSilently('#');
 }
+
+/* ---- 选集: 正序/倒序 + 跳最新 ---- */
+let epDesc = localStorage.getItem('hg_epdesc') === '1';
+let lastEpData = null;
+function renderEpButtons() {
+  if (!lastEpData) return;
+  const p = progress[curSid];
+  const eps = $('eps');
+  eps.innerHTML = '';
+  const list = epDesc ? [...lastEpData.episodes].reverse() : lastEpData.episodes;
+  list.forEach(e => {
+    const b = document.createElement('button');
+    b.textContent = e.index || '?';
+    if (p) {
+      if (e.index === p.ep) b.classList.add('lastw');
+      else if (e.index < p.ep) b.classList.add('seen');
+    }
+    b.onclick = () => { closeD(); openWatch(e.index); };
+    eps.appendChild(b);
+  });
+}
+function toggleEpOrder() {
+  epDesc = !epDesc;
+  localStorage.setItem('hg_epdesc', epDesc ? '1' : '0');
+  syncEpOrderBtns();
+  renderEpButtons();
+  renderWEps();
+}
+function syncEpOrderBtns() {
+  const label = epDesc ? '⇅ 倒序' : '⇅ 正序';
+  const b1 = $('epOrderBtn'), b2 = $('wepOrderBtn');
+  if (b1) b1.textContent = label;
+  if (b2) b2.textContent = label;
+}
+function jumpLatest() {
+  if (!lastEpData || !lastEpData.episodes.length) return;
+  const last = lastEpData.episodes[lastEpData.episodes.length - 1].index;
+  closeD(); openWatch(last);
+}
+syncEpOrderBtns();
 
 /* ---- 播放页 (优酷式) ---- */
 let listScrollY = 0;
@@ -746,14 +788,17 @@ function openWatch(ep) {
 function renderWEps() {
   const w = $('weps'); w.innerHTML = '';
   const p = progress[curSid];
-  for (let i = 1; i <= epCount; i++) {
+  const idxs = [];
+  for (let i = 1; i <= epCount; i++) idxs.push(i);
+  if (epDesc) idxs.reverse();
+  idxs.forEach(i => {
     const b = document.createElement('button');
     b.textContent = i;
     b.id = 'wep' + i;
     if (p && i < p.ep) b.classList.add('seen');
     b.onclick = () => playEp(i);
     w.appendChild(b);
-  }
+  });
 }
 function playEp(n) {
   if (n < 1 || n > epCount) return;
