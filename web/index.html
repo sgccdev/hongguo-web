@@ -825,7 +825,15 @@ function playEp(n) {
     if (i + 1 < n) b.classList.add('seen');   // 看过的集数实时灰显
   });
   const cur = $('wep' + n);
-  if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (cur) {
+    if (document.body.classList.contains('theater')) {
+      // 影院模式: 只滚选集容器, 不拖整页
+      const w = $('weps');
+      w.scrollTop = cur.offsetTop - w.offsetTop - w.clientHeight / 2;
+    } else {
+      cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
   v.onloadedmetadata = () => {
     if (resumeT && (!v.duration || v.duration - resumeT > 10)) v.currentTime = resumeT;
     v.playbackRate = speed;
